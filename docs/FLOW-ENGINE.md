@@ -462,7 +462,6 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           "description",
           "prompt",
           "transitionParameters",
-          "mcpServers",
           "closureConfig",
           "enabledCheckpoints"
         ],

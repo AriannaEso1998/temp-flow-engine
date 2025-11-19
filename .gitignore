@@ -198,5 +198,5 @@ web_modules/
 # Storybook build outputs
 storybook-static/
 
-# Claude Code documentation
+# CLAUDE
 CLAUDE.md
