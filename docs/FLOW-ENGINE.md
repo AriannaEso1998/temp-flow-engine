@@ -165,24 +165,266 @@ Nel template del prompt o della descrizione ci sarebbe l’idea di mettere a dis
 
 TODO inserire la parte di config nel record del conversational flow delle reason of call e dei result
 
-### **Pseudo-schema DB Mongo di un tenant**
-
+### **Schema Validation for api arrest**
 ```json
 {
-  "openapi": "3.1",
+  "openapi": "3.1.0",
   "info": {
-    "title": "Users API",
-    "version": "1.0.0"
+    "title": "Flow Engine API",
+    "version": "1.0.0",
+    "description": "Conversational Flow Engine REST API for managing conversational flows with Finite State Machines"
   },
   "components": {
     "schemas": {
+      "AIHelper": {
+        "type": "object",
+        "description": "AIHelper configuration - flexible schema allowing any properties for future extensibility"
+      },
+      "AudioMediaConfig": {
+        "type": "object",
+        "required": [
+          "presetId"
+        ],
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "presetId": {
+                "type": "string",
+                "description": "Reference to one of the preset of the platform. One is always present and it's called 'default'",
+                "default": "default"
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/BaseAudioMediaConfig"
+          }
+        ]
+      },
+      "AudioMediaConfigPreset": {
+        "type": "object",
+        "required": [
+          "llm",
+          "stt",
+          "tts",
+          "vad",
+          "allowInterruptionsOnStart",
+          "allowInterruptions",
+          "enableRecording",
+          "userInteractionTimeout",
+          "preemptiveGeneration"
+        ],
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BaseAudioMediaConfig"
+          }
+        ]
+      },
+      "BaseAudioMediaConfig": {
+        "type": "object",
+        "properties": {
+          "llm": {
+            "$ref": "#/components/schemas/LLMConfig"
+          },
+          "stt": {
+            "$ref": "#/components/schemas/STTConfig"
+          },
+          "tts": {
+            "$ref": "#/components/schemas/TTSConfig"
+          },
+          "vad": {
+            "$ref": "#/components/schemas/VADConfig"
+          },
+          "allowInterruptionsOnStart": {
+            "type": "boolean",
+            "description": "Controls if user can interrupt AI when playing the first message"
+          },
+          "allowInterruptions": {
+            "type": "boolean",
+            "description": "Controls if user can interrupt AI in messages after the first message played"
+          },
+          "courtesyMessageConfig": {
+            "description": "Contains the configuration for enabling courtesy messages. If not set, courtesy messages are disabled",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CourtesyMessageConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "enableRecording": {
+            "type": "boolean",
+            "description": "Enables recording of the conversation",
+            "default": false
+          },
+          "userInteractionTimeout": {
+            "type": "number",
+            "description": "Maximum waiting time (in seconds) for user response before triggering a no_utterance event.",
+            "default": 20
+          },
+          "preemptiveGeneration": {
+            "type": "boolean",
+            "description": "If true, the LLM can start generating responses before the user finishes speaking.",
+            "default": false
+          }
+        }
+      },
+      "BaseSTTConfig": {
+        "type": "object",
+        "required": [
+          "provider"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^google|deepgram|openai|{{ .+ }}$"
+          },
+          "recognitionTimeout": {
+            "type": "number",
+            "description": "Time to wait before issuing an unclear utterance message",
+            "default": 2.5
+          },
+          "streaming": {
+            "type": "boolean",
+            "description": "Enables or disables streaming STT mode.",
+            "default": false
+          },
+          "interimResults": {
+            "type": "boolean",
+            "description": "Enables interim (partial) recognition results during streaming.",
+            "default": false
+          },
+          "hints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional vocabulary hints to improve speech recognition accuracy.",
+            "default": []
+          },
+          "hintsBoost": {
+            "type": "number",
+            "description": "Weight multiplier applied to hints.",
+            "default": 1
+          },
+          "minEndpointingDelay": {
+            "type": "number",
+            "description": "Minimum delay that is waited after user ends to speak and turn detection thinks the turn is ended",
+            "default": 1.5
+          },
+          "maxEndpointingDelay": {
+            "type": "number",
+            "description": "Maximum delay that is waited after user ends to speak and turn detection thinks the turn is NOT yet ended",
+            "default": 3
+          },
+          "minInterruptionDuration": {
+            "type": "number",
+            "description": "User must speak at least this duration to interrupt the bot speaking",
+            "default": 0.7
+          }
+        }
+      },
+      "BaseTTSConfig": {
+        "type": "object",
+        "required": [
+          "provider",
+          "voice"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "pattern": "^google|elevenlabs|openai|{{ .+ }}$"
+          },
+          "voice": {
+            "type": "string",
+            "description": "(Template of) Voice ID according to provider specifications"
+          },
+          "speed": {
+            "type": "number",
+            "default": 1
+          }
+        }
+      },
+      "Checkpoint": {
+        "type": "object",
+        "required": [
+          "_id",
+          "name",
+          "prompt"
+        ],
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the Checkpoint"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "The LLM prompt used to identify the Checkpoint"
+          },
+          "required": {
+            "type": "boolean",
+            "description": "The flag that indicates if the current checkpoint is mandatory",
+            "default": false
+          }
+        }
+      },
+      "ClosureConfig": {
+        "type": "object",
+        "required": [
+          "multiContact"
+        ],
+        "properties": {
+          "multiContact": {
+            "type": "boolean",
+            "description": "If it's false a conversation is closed when the contact that originated it terminates. If it's true, conversationTimeLimit and customHandler will determinate the behaviour at the end of a contact",
+            "default": false
+          },
+          "conversationTimeLimit": {
+            "type": "number",
+            "description": "Defines the maximum absolute duration of the conversation in seconds. Mandatory if multiContact is true"
+          },
+          "customHandler": {
+            "type": "string",
+            "pattern": "^https?://(?:www\\.)?[-a-zA-Z0-9@:%.+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%+.~#?&/=]*)$",
+            "description": "Url that will respond true/false (close/don't close) when a contact terminate. Mandatory if multiContact is true"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "multiContact": {
+                  "const": true
+                }
+              },
+              "required": [
+                "multiContact"
+              ]
+            },
+            "then": {
+              "required": [
+                "conversationTimeLimit",
+                "customHandler"
+              ]
+            }
+          }
+        ]
+      },
       "ConversationalFlow": {
         "type": "object",
         "description": "It's the main record that declares the existance of a Conversational Flow within a campaign",
         "additionalProperties": false,
         "required": [
-          "_id", "name", "campaignId",
-          "schemaVersion", "updatedBy",
+          "_id",
+          "name",
+          "campaignId",
+          "schemaVersion",
+          "updatedBy",
           "updatedAt"
         ],
         "properties": {
@@ -206,13 +448,140 @@ TODO inserire la parte di config nel record del conversational flow delle reason
             "description": "The user that created the Conversational Flow or updated it's name"
           },
           "updatedAt": {
-             "type": "string",
-             "format": "date-time",
-             "description": "ISO Timestamp when the last insert/update operation has been done"
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO Timestamp when the last insert/update operation has been done"
           }
         }
       },
-
+      "ConversationalFlowTask": {
+        "type": "object",
+        "required": [
+          "_id",
+          "type",
+          "description",
+          "prompt",
+          "transitionParameters",
+          "mcpServers",
+          "closureConfig",
+          "enabledCheckpoints"
+        ],
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "AIO",
+              "AIS",
+              "HUM"
+            ],
+            "description": "The type of the current task: AI only (AIO), human (HUM) or AI supervised (AIS)"
+          },
+          "description": {
+            "type": "string",
+            "description": "The prompt used by the AI in order to move to the current task from a linked one"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "The prompt used by the AI to describe the current task"
+          },
+          "transitionParameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransitionParameter"
+            }
+          },
+          "aiHelpers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AIHelper"
+            }
+          },
+          "channels": {
+            "description": "The list of the available channel. In case of null all channels are enabled",
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "phone",
+                    "whatsapp",
+                    "sms",
+                    "mail",
+                    "chat"
+                  ]
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mcpToolSelection": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPToolSelection"
+            },
+            "description": "The list of MCP Servers available for the current task"
+          },
+          "closureConfig": {
+            "$ref": "#/components/schemas/ClosureConfig",
+            "description": "A specific closure config to be used in the specific task. This configuration overrides the one set on the conversational flow."
+          },
+          "enabledCheckpoints": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Checkpoint"
+            },
+            "description": "The list of selected checkpoint for the current task"
+          },
+          "connectedTasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Task ids connected to this one"
+          }
+        }
+      },
+      "ConversationalFlowTaskAIO": {
+        "properties": {
+          "hideTranscriptionToHuman": {
+            "type": "boolean",
+            "description": "Automatically hide transcriptions to human"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConversationalFlowTask"
+          }
+        ]
+      },
+      "ConversationalFlowTaskAIS": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConversationalFlowTaskHUM"
+          }
+        ]
+      },
+      "ConversationalFlowTaskHUM": {
+        "required": [
+          "routingParameters"
+        ],
+        "properties": {
+          "routingParameters": {
+            "$ref": "#/components/schemas/RoutingParameters"
+          }
+        },
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConversationalFlowTask"
+          }
+        ]
+      },
       "ConversationalFlowVersion": {
         "type": "object",
         "description": "It's a version of a conversational flow defined in ConversationalFlow with all the settings needed to render in the UI and also to have a working FSM",
@@ -240,14 +609,26 @@ TODO inserire la parte di config nel record del conversational flow delle reason
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["phone", "whatsapp", "sms", "mail", "chat"]
+              "enum": [
+                "phone",
+                "whatsapp",
+                "sms",
+                "mail",
+                "chat"
+              ]
             }
           },
           "mandatoryChannels": {
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["phone", "whatsapp", "sms", "mail", "chat"]
+              "enum": [
+                "phone",
+                "whatsapp",
+                "sms",
+                "mail",
+                "chat"
+              ]
             }
           },
           "closureConfig": {
@@ -263,7 +644,7 @@ TODO inserire la parte di config nel record del conversational flow delle reason
             "$ref": "#/components/schemas/LanguageCode",
             "description": "Default language when a new conversation starts"
           },
-          "supportedLanguages" : {
+          "supportedLanguages": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LanguageCode"
@@ -290,13 +671,16 @@ TODO inserire la parte di config nel record del conversational flow delle reason
             "description": "The object containing the UI metadata"
           },
           "mcpServers": {
-            "$ref": "#/components/schemas/MCPServer",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPServer"
+            },
             "description": "The list of MCP Servers available for the current conversational flow"
           },
           "aiHelpers": {
             "type": "array",
             "items": {
-              "$ref":"#/components/schemas/AIHelper"
+              "$ref": "#/components/schemas/AIHelper"
             }
           },
           "tasks": {
@@ -320,7 +704,10 @@ TODO inserire la parte di config nel record del conversational flow delle reason
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["name", "prompt"],
+              "required": [
+                "name",
+                "prompt"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -338,7 +725,11 @@ TODO inserire la parte di config nel record del conversational flow delle reason
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["name", "prompt", "resultTypes"],
+              "required": [
+                "name",
+                "prompt",
+                "resultTypes"
+              ],
               "properties": {
                 "name": {
                   "type": "string",
@@ -351,8 +742,14 @@ TODO inserire la parte di config nel record del conversational flow delle reason
                 "resultTypes": {
                   "type": "array",
                   "items": {
-                    "type":"string",
-                    "enum": ["CL", "UNC", "UC", "Y", "UPS"]
+                    "type": "string",
+                    "enum": [
+                      "CL",
+                      "UNC",
+                      "UC",
+                      "Y",
+                      "UPS"
+                    ]
                   }
                 }
               }
@@ -409,7 +806,6 @@ TODO inserire la parte di config nel record del conversational flow delle reason
                 "checkpoints",
                 "reasonsOfContact",
                 "results",
-                "playbooks",
                 "createdBy",
                 "createdAt"
               ]
@@ -417,373 +813,20 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           }
         ]
       },
-
-      "MediaConfig": {
-        "type": "object",
-        "required": ["audio", "text"],
-        "properties": {
-          "audio": {
-            "$ref": "#/components/schemas/AudioMediaConfig"
-          },
-          "text": {
-            "$ref": "#/components/schemas/TextMediaConfig"
-          }
-        }
-      },
-
-      "LLMConfig": {
-        "type": "object",
-        "properties": {
-          "provider": {
-            "type": "string",
-            "enum": ["openai", "azure", "google", "local", "groq"]
-          },
-          "model": {
-            "type": "string",
-            "description": "Reference to one the models provided by SmileCX"
-          },
-          "temperature": {
-            "type": "number",
-            "description": "Defines the \"creativity\" of the AI Model"
-          }
-        }
-      },
-
-      "BaseTTSConfig": {
-        "type": "object",
-        "required": [
-          "provider", "voice"
-        ],
-        "properties": {
-          "provider": {
-            "type": "string",
-            "pattern": "^google|elevenlabs|openai|{{ .+ }}$"
-          },
-          "voice": {
-            "type": "string",
-            "description": "(Template of) Voice ID according to provider specifications"
-          },
-          "speed": {
-            "type": "number",
-            "default": 1.0
-          }
-        }
-      },
-
-      "LanguageTTSConfig": {
-        "type": "object",
-        "properties": {
-          "language": {
-            "type": "string",
-            "description": "Language in ISO 639-1 - two chars (en, it, ..)"
-          },
-          "config": {
-            "$ref": "#/components/schemas/BaseTTSConfig"
-          }
-        }
-      },
-
-      "TTSConfig": {
-        "type": "object",
-        "required": ["default", "fallback"],
-        "properties": {
-          "default": {
-            "$ref": "#/components/schemas/BaseTTSConfig"
-          },
-          "fallback": {
-            "$ref": "#/components/schemas/BaseTTSConfig"
-          },
-          "languageCustomConfig": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LanguageTTSConfig"
-            },
-            "nullable": true
-          }
-        }
-      },
-
-      "BaseAudioMediaConfig": {
-        "type": "object",
-        "properties": {
-          "llm": {
-            "$ref": "#/components/schemas/LLMConfig"
-          },
-          "stt": {
-            "$ref": "#/components/schemas/STTConfig"
-          },
-          "tts": {
-            "$ref": "#/components/schemas/TTSConfig"
-          },
-          "vad": {
-            "$ref": "#/components/schemas/VADConfig"
-          },
-          "allowInterruptionsOnStart": {
-            "type": "boolean",
-            "description": "Controls if user can interrupt AI when playing the first message"
-          },
-          "allowInterruptions": {
-            "type": "boolean",
-            "description": "Controls if user can interrupt AI in messages after the first message played"
-          },
-          "courtesyMessageConfig": {
-              "$ref": "#/components/schemas/CourtesyMessageConfig",
-              "nullable": true,
-              "description": "Contains the configuration for enabling courtesy messages. If not set, courtesy messages are disabled"
-          },
-          "enableRecording": {
-            "type": "boolean",
-            "description": "Enables recording of the conversation",
-            "default": false
-          },
-          "userInteractionTimeout": {
-            "type": "number",
-            "description": "Maximum waiting time (in seconds) for user response before triggering a no_utterance event.",
-            "default": 20
-          },
-          "preemptiveGeneration": {
-            "type": "boolean",
-            "description": "If true, the LLM can start generating responses before the user finishes speaking.",
-            "default": false
-          }          
-        }        
-      },
-
-      "AudioMediaConfig": {
-        "type": "object",
-        "required": ["presetId"],
-        "allOf": [
-          { 
-            "type": "object",
-            "properties": {
-              "presetId": {
-                "type": "string",
-                "description": "Reference to one of the preset of the platform. One is always present and it's called 'default'",
-                "default": "default"
-              }
-            }
-          },
-          { "$ref": "#/components/schemas/BaseAudioMediaConfig" }
-        ]
-      },
-
-      "AudioMediaConfigPreset": {
-        "type": "object",
-        "required": [
-          "llm", "stt", "tts", "vad",
-          "allowInterruptionsOnStart", "allowInterruptions",
-          "enableRecording", "userInteractionTimeout",
-          "preemptiveGeneration"
-        ],
-        "allOf": [
-          { "$ref": "#/components/schemas/BaseAudioMediaConfig" }
-        ]
-      },
-
-      "TextMediaConfig": {
-        "type": "object",
-        "properties": {
-          "llm": {
-            "$ref": "#/components/schemas/LLMConfig"
-          },
-          "courtesyMessageConfig": {
-              "$ref": "#/components/schemas/CourtesyMessageConfig",
-              "description": "Contains the configuration for enabling courtesy messages. If not set, courtesy messages are disabled",
-              "nullable": true
-          },
-          "userInteractionTimeout": {
-            "type": "number",
-            "description": "Maximum waiting time (in seconds) for user response before triggering a no_utterance event. (default: never)",
-            "nullable": true
-          }          
-        }
-      },
-
-      "BaseSTTConfig": {
-        "type": "object",
-        "required": [
-          "provider"
-        ],
-        "properties": {
-          "provider": {
-            "type": "string",
-            "pattern": "^google|deepgram|openai|{{ .+ }}$"
-          },
-          "recognitionTimeout": {
-            "type": "number",
-            "description": "Time to wait before issuing an unclear utterance message",
-            "default": 2.5
-          },
-          "streaming": {
-            "type": "boolean",
-            "description": "Enables or disables streaming STT mode.",
-            "default": false
-          },
-          "interimResults": {
-            "type": "boolean",
-            "description": "Enables interim (partial) recognition results during streaming.",
-            "default": false
-          },
-          "hints": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Optional vocabulary hints to improve speech recognition accuracy.",
-            "default": []
-          },
-          "hintsBoost": {
-            "type": "number",
-            "description": "Weight multiplier applied to hints.",
-            "default": 1.0
-          },
-          "minEndpointingDelay": {
-            "type": "number",
-            "description": "Minimum delay that is waited after user ends to speak and turn detection thinks the turn is ended",
-            "default": 1.5
-          },
-          "maxEndpointingDelay": {
-            "type": "number",
-            "description": "Maximum delay that is waited after user ends to speak and turn detection thinks the turn is NOT yet ended",
-            "default": 3.0
-          },
-          "minInterruptionDuration": {
-            "type": "number",
-            "description": "User must speak at least this duration to interrupt the bot speaking",
-            "default": 0.7
-          }
-        }
-      },
-
-      "LanguageSTTConfig": {
-        "type": "object",
-        "properties": {
-          "language": {
-            "type": "string",
-            "description": "Language in ISO 639-1 - two chars (en, it, ..)"
-          },
-          "config": {
-            "$ref": "#/components/schemas/BaseSTTConfig"
-          }
-        }
-      },
-
-      "STTConfig": {
-        "type": "object",
-        "required": ["default", "fallback"],
-        "properties": {
-          "default": {
-            "$ref": "#/components/schemas/BaseSTTConfig"
-          },
-          "fallback": {
-            "$ref": "#/components/schemas/BaseSTTConfig"
-          },
-          "languageCustomConfig": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/LanguageSTTConfig"
-            },
-            "nullable": true
-          }
-        }
-      },
-
-      "VADConfig": {
-        "type": "object",
-        "properties": {
-          "activationThreshold": {
-            "type": "number",
-            "description": "Threshold to consider a frame as speech.",
-            "default": 0.5
-          },
-          "maxBufferedSpeech": {
-            "type": "number",
-            "description": "Maximum duration of speech to keep in the buffer (in seconds).",
-            "default": 60.0
-          },
-          "minSilenceDuration": {
-            "type": "number",
-            "description": "At the end of each speech, wait this duration before ending the speech.",
-            "default": 0.8
-          },
-          "minSpeechDuration": {
-            "type": "number",
-            "description": "Minimum duration of speech to start a new speech chunk.",
-            "default": 0.08
-          },
-          "prefixPaddingDuration": {
-            "type": "number",
-            "description": "Duration of padding to add to the beginning of each speech chunk.",
-            "default": 0.5
-          }
-
-        }
-      },
-
-      "ClosureConfig": {
-        "type": "object",
-        "required": ["multiContact"],
-        "properties": {
-          "multiContact": {
-            "type": "boolean",
-            "description": "If it's false a conversation is closed when the contact that originated it terminates. If it's true, conversationTimeLimit and customHandler will determinate the behaviour at the end of a contact",
-            "default": false
-          },
-          "conversationTimeLimit": {
-            "type": "number",
-            "description": "Defines the maximum absolute duration of the conversation in seconds. Mandatory if multiContact is true"
-          },
-          "customHandler": {
-            "type": "string",
-            "pattern": "^https?://(?:www.)?[-a-zA-Z0-9@:%.+~#=]{1,256}.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%+.~#?&/=]*)$",
-            "description": "Url that will respond true/false (close/don't close) when a contact terminate. Mandatory if multiContact is true"
-          }
-        },
-          "allOf": [
-          {
-            "if": {
-              "properties": { "multiContact": { "const": true } },
-              "required": ["multiContact"]
-            },
-            "then": {
-              "required": ["conversationTimeLimit", "customHandler"]
-            }
-          }
-        ]
-      },
-
-      "LanguageDetectionConfig": {
-        "type": "object",
-        "properties": {
-          "enableLanguageDetection": {
-            "type": "boolean",
-            "description": "Enables automatic language detection from user input.",
-            "default": false
-          },
-          "minWordsForLanguageDetection": {
-            "type": "number",
-            "description": "Minimum number of words required to attempt language detection.",
-            "default": 2
-          },
-          "languageDetector": {
-            "type": "string",
-            "enum": ["fasttext","lingua"],
-            "description": "Algorithm used for language detection. Supported: \"fasttext\", \"lingua\".",
-            "default": "fasttext"
-          }
-        }
-      },
-
       "CourtesyMessageConfig": {
         "type": "object",
         "required": [
-          "provider", "providerParams",
+          "provider",
+          "providerParams",
           "timeout"
         ],
         "properties": {
           "provider": {
             "type": "string",
-            "enum": ["groq", "random"]
+            "enum": [
+              "groq",
+              "random"
+            ]
           },
           "timeout": {
             "type": "number",
@@ -796,13 +839,16 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           },
           "providerParams": {
             "oneOf": [
-              {"$ref": "#/components/schemas/CourtesyMessageGroqParams"},
-              {"$ref": "#/components/schemas/CourtesyMessageRandomParams"}
+              {
+                "$ref": "#/components/schemas/CourtesyMessageGroqParams"
+              },
+              {
+                "$ref": "#/components/schemas/CourtesyMessageRandomParams"
+              }
             ]
           }
         }
       },
-
       "CourtesyMessageGroqParams": {
         "type": "object",
         "properties": {
@@ -833,14 +879,14 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           },
           "model": {
             "type": "string",
-            "enum": ["meta-lama/lama-4-scout-17b-16e-instruct"],
+            "enum": [
+              "meta-llama/llama-4-scout-17b-16e-instruct"
+            ],
             "description": "AI Model used for courtesy message generation. Any model supported by groq is accepted.",
-            "default": "meta-lama/lama-4-scout-17b-16e-instruct"
+            "default": "meta-llama/llama-4-scout-17b-16e-instruct"
           }
         }
       },
-
-
       "CourtesyMessageRandomParams": {
         "type": "object",
         "properties": {
@@ -852,10 +898,88 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           }
         }
       },
-
+      "LLMConfig": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "openai",
+              "azure",
+              "google",
+              "local",
+              "groq"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "description": "Reference to one the models provided by SmileCX"
+          },
+          "temperature": {
+            "type": "number",
+            "description": "Defines the \"creativity\" of the AI Model"
+          }
+        }
+      },
+      "LanguageCode": {
+        "type": "string",
+        "description": "Array of languages in BCP 47 format (ISO 639-1 + ISO 3166-1).",
+        "example": "it-IT or en-US"
+      },
+      "LanguageDetectionConfig": {
+        "type": "object",
+        "properties": {
+          "enableLanguageDetection": {
+            "type": "boolean",
+            "description": "Enables automatic language detection from user input.",
+            "default": false
+          },
+          "minWordsForLanguageDetection": {
+            "type": "number",
+            "description": "Minimum number of words required to attempt language detection.",
+            "default": 2
+          },
+          "languageDetector": {
+            "type": "string",
+            "enum": [
+              "fasttext",
+              "lingua"
+            ],
+            "description": "Algorithm used for language detection. Supported: \"fasttext\", \"lingua\".",
+            "default": "fasttext"
+          }
+        }
+      },
+      "LanguageSTTConfig": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "description": "Language in ISO 639-1 - two chars (en, it, ..)"
+          },
+          "config": {
+            "$ref": "#/components/schemas/BaseSTTConfig"
+          }
+        }
+      },
+      "LanguageTTSConfig": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "description": "Language in ISO 639-1 - two chars (en, it, ..)"
+          },
+          "config": {
+            "$ref": "#/components/schemas/BaseTTSConfig"
+          }
+        }
+      },
       "LocalizedText": {
         "type": "object",
-        "required": ["language", "text"],
+        "required": [
+          "language",
+          "text"
+        ],
         "properties": {
           "language": {
             "type": "string",
@@ -866,50 +990,13 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           }
         }
       },
-
-      "LanguageCode": {
-        "type": "string",
-        "description": "Array of languages in BCP 47 format (ISO 639-1 + ISO 3166-1).",
-        "example": "it-IT or en-US"
-      },
-
-      "SchemaVersionString": {
-        "type": "string",
-        "description": "Version of the object schema to handle future schema updates or migrations",
-        "pattern": "^[0-9]+.[0-9]+.[0-9]+$",
-        "example": "1.0.0"
-      },
-
-      "Checkpoint": {
-        "type": "object",
-        "required": [
-          "_id",
-          "name",
-          "prompt"
-        ],
-        "properties": {
-          "_id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string",
-            "description": "Name of the Checkpoint"
-          },
-          "prompt": {
-            "type": "string",
-            "description": "The LLM prompt used to identify the Checkpoint"
-          },
-          "required": {
-            "type": "boolean",
-            "description": "The flag that indicates if the current checkpoint is mandatory",
-            "default": false
-          }
-        }
-      },
-
       "MCPServer": {
         "type": "object",
-        "required": ["name", "url", "includedTools"],
+        "required": [
+          "name",
+          "url",
+          "includedTools"
+        ],
         "properties": {
           "name": {
             "type": "string",
@@ -917,7 +1004,7 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           },
           "url": {
             "type": "string",
-            "pattern": "^https?://(?:www.)?[-a-zA-Z0-9@:%.+~#=]{1,256}.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%+.~#?&/=]*)$",
+            "pattern": "^https?://(?:www\\.)?[-a-zA-Z0-9@:%.+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%+.~#?&/=]*)$",
             "description": "The url of the current MCPServer"
           },
           "includedTools": {
@@ -939,10 +1026,277 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           }
         }
       },
-
+      "MCPToolParameter": {
+        "type": "object",
+        "required": [
+          "parameterName",
+          "assignmentStrategy",
+          "assignmentValue"
+        ],
+        "properties": {
+          "parameterName": {
+            "type": "string",
+            "description": "The name of the parameter"
+          },
+          "assignmentStrategy": {
+            "type": "string",
+            "enum": [
+              "variable",
+              "fixed",
+              "prompt"
+            ],
+            "description": "The strategy used for assigning the value"
+          },
+          "assignmentValue": {
+            "type": "string",
+            "description": "This depends on assignmentStrategy, it could be : <br/>- a variable id <br/>- a fixed value <br/>- a prompt for helping the ai on calculate the real value that should be passed"
+          }
+        }
+      },
+      "MCPToolParametersMap": {
+        "type": "object",
+        "required": [
+          "toolName"
+        ],
+        "properties": {
+          "toolName": {
+            "type": "string",
+            "description": "The name of the tool in the MCP Server"
+          },
+          "toolParameters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPToolParameter"
+            },
+            "description": "The list of parameters for the tools selected"
+          }
+        }
+      },
+      "MCPToolSelection": {
+        "type": "object",
+        "required": [
+          "mcpServerName",
+          "selectedTools"
+        ],
+        "properties": {
+          "mcpServerName": {
+            "type": "string",
+            "description": "The MCP Server name from the list of MCP Servers supplied by the conversational flow"
+          },
+          "selectedTools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPToolParametersMap"
+            },
+            "description": "The list of tools selected for this MCP Server"
+          }
+        }
+      },
+      "MediaConfig": {
+        "type": "object",
+        "required": [
+          "audio",
+          "text"
+        ],
+        "properties": {
+          "audio": {
+            "$ref": "#/components/schemas/AudioMediaConfig"
+          },
+          "text": {
+            "$ref": "#/components/schemas/TextMediaConfig"
+          }
+        }
+      },
+      "RoutingParameters": {
+        "type": "object",
+        "required": [
+          "timeout"
+        ],
+        "properties": {
+          "timeout": {
+            "type": "number",
+            "description": "Time to wait before considering the routing request failed (no answer by agents)"
+          },
+          "agentSkills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Skills required by the routing request"
+          },
+          "agentOptionalSkills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional skills required by the routing request"
+          },
+          "agentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Specific agents required by the routing request"
+          },
+          "waitingMusic": {
+            "type": "string",
+            "pattern": "^https?://(?:www\\.)?[-a-zA-Z0-9@:%.+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b(?:[-a-zA-Z0-9()@:%+.~#?&/=]*)$",
+            "description": "Url to specific music to play during waiting"
+          },
+          "waitingMusicDuration": {
+            "type": "number",
+            "description": "Interval between waiting messages"
+          },
+          "waitingMessagesConfiguration": {
+            "$ref": "#/components/schemas/WaitingMessagesConfiguration"
+          }
+        }
+      },
+      "STTConfig": {
+        "type": "object",
+        "required": [
+          "default",
+          "fallback"
+        ],
+        "properties": {
+          "default": {
+            "$ref": "#/components/schemas/BaseSTTConfig"
+          },
+          "fallback": {
+            "$ref": "#/components/schemas/BaseSTTConfig"
+          },
+          "languageCustomConfig": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LanguageSTTConfig"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "SchemaVersionString": {
+        "type": "string",
+        "description": "Version of the object schema to handle future schema updates or migrations",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+        "example": "1.0.0"
+      },
+      "TTSConfig": {
+        "type": "object",
+        "required": [
+          "default",
+          "fallback"
+        ],
+        "properties": {
+          "default": {
+            "$ref": "#/components/schemas/BaseTTSConfig"
+          },
+          "fallback": {
+            "$ref": "#/components/schemas/BaseTTSConfig"
+          },
+          "languageCustomConfig": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LanguageTTSConfig"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "TextMediaConfig": {
+        "type": "object",
+        "properties": {
+          "llm": {
+            "$ref": "#/components/schemas/LLMConfig"
+          },
+          "courtesyMessageConfig": {
+            "description": "Contains the configuration for enabling courtesy messages. If not set, courtesy messages are disabled",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CourtesyMessageConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "userInteractionTimeout": {
+            "description": "Maximum waiting time (in seconds) for user response before triggering a no_utterance event. (default: never)",
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "TransitionParameter": {
+        "type": "object",
+        "required": [
+          "variableId",
+          "required"
+        ],
+        "properties": {
+          "variableId": {
+            "type": "string",
+            "description": "The id of the variable selected from the available variables for the conversational flow"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "VADConfig": {
+        "type": "object",
+        "properties": {
+          "activationThreshold": {
+            "type": "number",
+            "description": "Threshold to consider a frame as speech.",
+            "default": 0.5
+          },
+          "maxBufferedSpeech": {
+            "type": "number",
+            "description": "Maximum duration of speech to keep in the buffer (in seconds).",
+            "default": 60
+          },
+          "minSilenceDuration": {
+            "type": "number",
+            "description": "At the end of each speech, wait this duration before ending the speech.",
+            "default": 0.8
+          },
+          "minSpeechDuration": {
+            "type": "number",
+            "description": "Minimum duration of speech to start a new speech chunk.",
+            "default": 0.08
+          },
+          "prefixPaddingDuration": {
+            "type": "number",
+            "description": "Duration of padding to add to the beginning of each speech chunk.",
+            "default": 0.5
+          }
+        }
+      },
       "Variable": {
         "type": "object",
-        "required": ["_id", "name", "type"],
+        "required": [
+          "_id",
+          "name",
+          "type"
+        ],
         "properties": {
           "_id": {
             "type": "string"
@@ -953,7 +1307,15 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           },
           "type": {
             "type": "string",
-            "enum": ["string", "number", "boolean", "enum", "date", "phone", "custom"],
+            "enum": [
+              "string",
+              "number",
+              "boolean",
+              "enum",
+              "date",
+              "phone",
+              "custom"
+            ],
             "description": "Variable type"
           },
           "enumValues": {
@@ -977,174 +1339,28 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           }
         },
         "then": {
-          "required": ["prompt"]
+          "required": [
+            "prompt"
+          ]
         }
       },
-
-      "ConversationalFlowTask": {
-        "type": "object",
-        "required": [
-          "_id",
-          "type",
-          "description",
-          "prompt",
-          "transitionParameters",
-          "mcpServers",
-          "closureConfig",
-          "enabledCheckpoints"
-        ],
-        "properties": {
-          "_id": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": ["AIO", "AIS", "HUM"],
-            "description": "The type of the current task: AI only (AIO), human (HUM) or AI supervised (AIS)"
-          },
-          "description": {
-            "type": "string",
-            "description": "The prompt used by the AI in order to move to the current task from a linked one"
-          },
-          "prompt": {
-            "type": "string",
-            "description": "The prompt used by the AI to describe the current task"
-          },
-          "transitionParameters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TransitionParameter"
-            }
-          },
-          "aiHelpers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AIHelper"
-            }
-          },
-          "channels": {
-            "type": "array",
-            "description": "The list of the available channel. In case of null all channels are enabled",
-            "items": {
-              "type": "string",
-              "enum": ["phone", "whatsapp", "sms", "mail", "chat"]
-            },
-            "nullable": true
-          },
-          "mcpToolSelection": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MCPToolSelection"
-            },
-            "description": "The list of MCP Servers available for the current task"
-          },
-          "closureConfig": {
-            "$ref":"#/components/schemas/ClosureConfig",
-            "description": "A specific closure config to be used in the specific task. This configuration overrides the one set on the conversational flow."
-          },
-          "enabledCheckpoints": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Checkpoint"
-            },
-            "description": "The list of selected checkpoint for the current task"
-          },
-           "connectedTasks": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Task ids connected to this one"
-          }
-        }
-      },
-      
-      "ConversationalFlowTaskAIO": {
-        "properties": {
-          "hideTranscriptionToHuman" : {
-            "type": "boolean",
-            "description": "Automatically hide transcriptions to human"
-          }
-        },
-        "allOf": [
-          { "$ref": "#/components/schemas/ConversationalFlowTask" }
-        ]
-      },
-
-      "ConversationalFlowTaskHUM": {
-        "required": ["routingParameters"],
-        "properties": {
-          "routingParameters" : {
-            "$ref": "#/components/schemas/RoutingParameters"
-          }
-        },
-        "allOf": [
-          { "$ref": "#/components/schemas/ConversationalFlowTask" }
-        ]
-      },
-
-      "ConversationalFlowTaskAIS": {
-        "allOf": [
-          { "$ref": "#/components/schemas/ConversationalFlowTaskHUM" }
-        ]
-      },
-
-      "RoutingParameters": {
-        "type": "object",
-        "required": ["timeout"],
-        "properties":{
-          "timeout" : {
-            "type": "number",
-            "description": "Time to wait before considering the routing request failed (no answer by agents)"
-          },
-          "agentSkills" : {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Skills required by the routing request"
-          },
-          "agentOptionalSkills" : {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Optional skills required by the routing request"
-          },
-          "agentIds" : {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Specific agents required by the routing request"
-          },
-          "waitingMusic": {
-            "type": "string",
-            "pattern": "^https?://(?:www.)?[-a-zA-Z0-9@:%.+~#=]{1,256}.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%+.~#?&/=]*)$",
-            "description": "Url to specific music to play during waiting"
-          },
-          "waitingMusicDuration": {
-            "type": "number",
-            "description": "Interval between waiting messages"
-          },
-          "waitingMessagesConfiguration": {
-            "$ref": "#/components/schemas/WaitingMessagesConfiguration"
-          }
-        }
-      },
-
       "WaitingMessagesConfiguration": {
         "type": "object",
-        "required": ["genarationStrategy"],
+        "required": [
+          "generationStrategy"
+        ],
         "properties": {
-          "genarationStrategy": {
+          "generationStrategy": {
             "type": "string",
-            "enum": ["fixed", "prompt"],
+            "enum": [
+              "fixed",
+              "prompt"
+            ],
             "description": "Strategy to generate waiting messages"
           },
           "prompt": {
             "type": "string",
-            "description": "Prompt for generatig waiting messages"
+            "description": "Prompt for generating waiting messages"
           },
           "messagesList": {
             "type": "array",
@@ -1154,96 +1370,28 @@ TODO inserire la parte di config nel record del conversational flow delle reason
           }
         },
         "if": {
-          "genarationStrategy": {
-            "type": {
+          "properties": {
+            "generationStrategy": {
               "const": "prompt"
             }
           }
         },
         "then": {
-          "required": ["prompt"]
+          "required": [
+            "prompt"
+          ]
         },
         "else": {
-          "required": ["messagesList"]
+          "required": [
+            "messagesList"
+          ]
         }
-      },
-
-      "MCPToolSelection": {
-        "type": "object",
-        "required": ["mcpServerName","selectedTools"],
-        "properties": {
-          "mcpServerName": {
-            "type": "string",
-            "description": "The MCP Server name from the list of MCP Servers supplied by the conversational flow"
-          },
-          "selectedTools": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MCPToolParametersMap"
-            },
-            "description": "The list of tools selected for this MCP Server"
-          }
-        }
-      },
-
-      "MCPToolParametersMap": {
-        "type": "object",
-        "required": ["toolName"],
-        "properties": {
-          "toolName":{
-            "type": "string",
-            "description": "The name of the tool in the MCP Server"
-          },
-          "toolParameters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MCPToolParameter"
-            },
-            "description": "The list of parameters for the tools selected"
-          }
-        }
-      },
-
-      "MCPToolParameter": {
-        "type": "object",
-        "required": ["parameterName","assignmentStrategy","assignmentValue"],
-        "properties": {
-          "parameterName":{
-            "type": "string",
-            "description": "The name of the parameter"
-          },
-          "assignmentStrategy":{
-            "type": "string",
-            "enum": ["variable","fixed","prompt"],
-            "description": "The strategy used for assigning the value"
-          },
-          "assignmentValue": {
-            "type": "string",
-            "description": "This depends on assignmentStrategy, it could be : <br/>- a variable id <br/>- a fixed value <br/>- a prompt for helping the ai on calculate the real value that should be passed"
-          }
-        }
-      },
-
-      "TransitionParameter": {
-        "type": "object",
-        "required": ["variableId","required"],
-        "properties": {
-          "variableId": {
-            "type": "string",
-            "description": "The id of the variable selected from the available variables for the conversational flow"
-          },
-          "required": {
-            "type": "boolean"
-          }
-        }
-      },
-      "AIHelper": {
-        "type": "object"
       }
     }
   }
 }
 ```
+
 Note:
 
 * Regole per il salvataggio delle versioni  
@@ -1318,6 +1466,68 @@ Indicativamente:
 TODO Come gestire la deflection → la macchina a stati può avere solo un task in esecuzione in un certo momento
 
 ## **Sequence diagram di funzionamento di massima dell’interazione tra un agent e le API esposte dalla macchina a stati**
+```mermaid
+---
+title: ConversationalFlowRunner Class
+---
+
+classDiagram
+
+  ConversationalFlowRunner: +string conversationId
+  ConversationalFlowRunner: +string contactId
+  ConversationalFlowRunner: +string conversationalFlowVersionId
+  ConversationalFlowRunner: +List[string] memoryParameters
+  ConversationalFlowRunner: +ConversationalFlowVersion fsm
+  ConversationalFlowRunner: +string errorValidationMessage
+
+  ConversationalFlowRunner: +resume(string conversationalFlowVersionId) ConversationalFlowRunner | null
+  ConversationalFlowRunner: +compileFsm() ConversationalFlowVersion
+  ConversationalFlowRunner: +changeTask(string taskName) bool
+  ConversationalFlowRunner: +setTaskValidationError() null
+  ConversationalFlowRunner: +getTaskValidationError() string
+  ConversationalFlowRunner: +hasTaskValidationError() bool
+  ConversationalFlowRunner: +getAgentData() AgentData
+
+  AgentData: +string prompt
+  AgentData: +AIModel llmConfig
+  AgentData: +ChannelConfigObject channelConfig
+```  
+
+```mermaid
+---
+title: MemoryManager Class
+---
+
+classDiagram
+
+  DescriptionForLLMEntry: +name string
+  DescriptionForLLMEntry: +value string
+
+  PreviousContact: +date string
+  PreviousContact: +channel string
+  PreviousContact: +resume string
+  
+
+  MemoryVariable: +updatedBy string
+  MemoryVariable: +updatedAt string
+  MemoryVariable: +type string
+  MemoryVariable: +contactId string
+  MemoryVariable: +value object
+  MemoryVariable: +descriptionForLLM List[DescriptionForLLMEntry]
+
+  MemoryManager: +constructor(string conversationId, int expiration)
+  MemoryManager: +init(int ttl, object tenantData, List[string] varIds)
+  MemoryManager: +getTenantData() object
+
+  MemoryManager: +setVars(string updatedBy, List[MemoryVariable] vars)
+  MemoryManager: +getVars(List[str] keys = null) List[MemoryVariable]
+
+  MemoryManager: +addPreviousContact(PreviousContact c)
+  MemoryManager: +getContactsHistory() List[PreviousContact]
+
+  MemoryManager: +setFSMSnapshot(object snapshot)
+  MemoryManager: +getFSMSnapshot() snapshot
+```  
 
 ### **Gestione di un nuovo contact**
 ```mermaid
