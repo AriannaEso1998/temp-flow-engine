@@ -197,6 +197,3 @@ web_modules/
 
 # Storybook build outputs
 storybook-static/
-
-# CLAUDE
-CLAUDE.md
