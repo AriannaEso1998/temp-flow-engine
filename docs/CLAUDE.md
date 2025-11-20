@@ -499,8 +499,20 @@ src/
 ├── api/schemas/openapi.json              # Schema OpenAPI 3.1.0 (source of truth)
 ├── schemas/generated/index.ts            # Types auto-generati
 ├── models/                               # Types + helpers + validators
-├── core/conversational-flow-runner.ts    # FSM lifecycle manager
-├── core/fsm-compiler.ts                  # XState compiler
+│   ├── flow/                            # Flow-related models
+│   └── memory/                          # Memory-related models
+├── fsm/                                  # FSM logic (ex-core)
+│   ├── compiler.ts                      # XState compiler (includes guards & actions)
+│   ├── runner.ts                        # FSM lifecycle manager (ConversationalFlowRunner)
+│   └── types.ts                         # FSMContext, FSMEvent types
+├── services/                             # Business logic services
+│   ├── memory-manager.ts                # Redis memory management
+│   ├── flow-service.ts                  # Flow CRUD operations
+│   └── prompt-renderer.ts               # Prompt rendering
+├── api/                                  # REST API endpoints
+│   ├── fsm/                             # Flow management API (UI)
+│   ├── agents/                          # Agent-facing API
+│   └── memory/                          # Memory API
 ```
 
 ### Imports Essenziali
@@ -523,8 +535,8 @@ import {
 import { createMachine, createActor, type AnyActorRef } from 'xstate';
 
 // FSM
-import { FSMCompiler } from '../core/fsm-compiler';
-import { ConversationalFlowRunner } from '../core/conversational-flow-runner';
+import { FSMCompiler } from '../fsm/compiler';
+import { ConversationalFlowRunner } from '../fsm/runner';
 ```
 
 ## Link Utili

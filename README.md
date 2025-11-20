@@ -36,60 +36,113 @@ TypeScript-based conversational flow management system using XState for Finite S
 ```
 temp-flow-engine/
 ├── src/
+│   ├── models/                   # Data models and types
+│   │   ├── types.ts                       # Generated types from OpenAPI
+│   │   ├── flow/                          # Flow-related models
+│   │   │   ├── conversational-flow.ts
+│   │   │   ├── conversational-flow-version.ts
+│   │   │   ├── conversational-flow-task.ts
+│   │   │   ├── transition.ts
+│   │   │   ├── variable.ts
+│   │   │   └── index.ts
+│   │   ├── memory/                        # Memory-related models
+│   │   │   ├── memory-variable.ts
+│   │   │   ├── previous-contact.ts
+│   │   │   └── index.ts
+│   │   └── index.ts                       # Central export
+│   │
+│   ├── fsm/                      # FSM logic (ex-core)
+│   │   ├── compiler.ts                    # Compiles ConversationalFlowVersion → XState
+│   │   │                                  # (includes guards and actions)
+│   │   ├── runner.ts                      # ConversationalFlowRunner - FSM runtime
+│   │   ├── types.ts                       # FSMContext, FSMEvent types
+│   │   └── index.ts
+│   │
+│   ├── services/                 # Business logic services
+│   │   ├── memory-manager.ts              # Redis memory management
+│   │   ├── flow-service.ts                # Flow CRUD operations
+│   │   ├── prompt-renderer.ts             # Prompt rendering (Tournament)
+│   │   ├── variable-extractor.ts          # Auto variable extraction
+│   │   └── checkpoint-evaluator.ts        # Checkpoint evaluation
+│   │
 │   ├── api/                      # REST API endpoints (Arrest)
-│   │   ├── agents/              # Agent-facing endpoints
-│   │   ├── flows/               # Flow management endpoints
-│   │   ├── memory/              # Memory management endpoints
-│   │   └── schemas/
-│   │       └── openapi.json     # OpenAPI 3.1.0 specification
-│   │
-│   ├── core/                     # Core business logic
-│   │   ├── conversational-flow-runner.ts  # Main FSM manager
-│   │   ├── fsm-compiler.ts                # XState machine compiler
-│   │   └── prompt-renderer.ts             # Template rendering
-│   │
-│   ├── models/                   # TypeScript types
-│   │   ├── types.ts                       # Re-exports from generated schema
-│   │   ├── variable.ts                    # Variable types + helpers
-│   │   ├── transition.ts                  # Transition types + helpers
-│   │   ├── conversational-flow-task.ts    # Task types + helpers
-│   │   ├── conversational-flow-version.ts # Flow version types + helpers
-│   │   └── index.ts                       # Barrel export
-│   │
-│   ├── schemas/
-│   │   └── generated/
-│   │       └── index.ts          # Auto-generated types from openapi-typescript
-│   │
-│   ├── services/                 # External services
-│   │   ├── mongodb/
-│   │   ├── redis/
-│   │   ├── llm/
-│   │   └── mcp/
+│   │   ├── fsm/                           # Flow management API (UI)
+│   │   │   ├── index.ts                  # Router
+│   │   │   ├── routes.ts                 # Route definitions
+│   │   │   ├── handlers.ts               # Request handlers
+│   │   │   └── validators.ts             # Input validation
+│   │   ├── agents/                        # Agent-facing API
+│   │   │   ├── index.ts                  # Router
+│   │   │   ├── routes.ts                 # /handle-new-contact, /change-task
+│   │   │   ├── handlers.ts
+│   │   │   └── validators.ts
+│   │   ├── memory/                        # Memory API
+│   │   │   ├── index.ts                  # Router
+│   │   │   ├── routes.ts                 # GET/PUT /memory/:conversation_id
+│   │   │   ├── handlers.ts
+│   │   │   └── validators.ts
+│   │   ├── middleware/
+│   │   │   ├── auth.ts
+│   │   │   ├── validation.ts
+│   │   │   └── error-handler.ts
+│   │   ├── schemas/
+│   │   │   └── openapi.json              # OpenAPI 3.1.0 specification
+│   │   └── index.ts                       # Main API setup
 │   │
 │   ├── workers/                  # Background workers
 │   │   ├── variable-extraction-worker.ts
-│   │   └── contact-summary-worker.ts
+│   │   └── conversation-cleanup-worker.ts
 │   │
-│   ├── utils/                    # Utility functions
-│   │   ├── validation.ts
+│   ├── utils/                    # Utilities
+│   │   ├── redis-client.ts
+│   │   ├── mongodb-client.ts
 │   │   ├── logger.ts
-│   │   └── prompt-loader.ts
+│   │   ├── validation.ts
+│   │   └── date-helpers.ts
 │   │
-│   └── config/                   # Configuration
-│       ├── database.ts
-│       ├── redis.ts
-│       └── environment.ts
+│   ├── config/                   # Configuration
+│   │   ├── environment.ts
+│   │   ├── constants.ts
+│   │   └── index.ts
+│   │
+│   ├── schemas/                  # Generated types
+│   │   └── generated/
+│   │       └── index.ts          # Auto-generated from openapi-typescript
+│   │
+│   └── index.ts                  # Entry point
+│
+├── tests/                        # Test suite
+│   ├── unit/
+│   │   ├── fsm/
+│   │   ├── services/
+│   │   └── models/
+│   ├── integration/
+│   │   └── api/
+│   └── fixtures/
+│       ├── conversational-flows/
+│       └── memory/
 │
 ├── docs/                         # Documentation
 │   ├── ARCHITECTURE.md
-│   └── FLOW-ENGINE.md
+│   ├── FLOW-ENGINE.md
+│   └── CLAUDE.md
 │
 ├── system-prompts/               # Versioned system prompts
-│   └── v1/
+│   ├── v1/
+│   │   ├── it-IT/
+│   │   ├── en-US/
+│   │   └── es-ES/
+│   └── default/
+│
+├── scripts/                      # Utility scripts
+│   ├── generate-types.ts
+│   ├── seed-db.ts
+│   └── migrate.ts
 │
 ├── package.json
 ├── tsconfig.json
-└── .env.example
+├── .env.example
+└── README.md
 ```
 
 ## Technology Stack

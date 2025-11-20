@@ -1,0 +1,269 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Flow Engine API",
+    "version": "1.0.0",
+    "description": "Conversational Flow Engine REST API for managing conversational flows with Finite State Machines"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local development server"
+    }
+  ],
+  "paths": {
+    "/handle-new-contact": {
+      "post": {
+        "summary": "Handle new contact",
+        "operationId": "handleNewContact",
+        "tags": ["Agents"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HandleNewContactRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandleNewContactResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/change-task": {
+      "post": {
+        "summary": "Change task in running flow",
+        "operationId": "changeTask",
+        "tags": ["Agents"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeTaskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeTaskResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/flows": {
+      "get": {
+        "summary": "List conversational flows",
+        "operationId": "listFlows",
+        "tags": ["Flows"],
+        "parameters": [
+          {
+            "name": "campaignId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "channel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["phone", "whatsapp", "sms", "mail", "chat"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FlowListItem"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create new conversational flow",
+        "operationId": "createFlow",
+        "tags": ["Flows"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFlowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Flow created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateFlowResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/memory/{conversationId}": {
+      "get": {
+        "summary": "Get conversation memory",
+        "operationId": "getMemory",
+        "tags": ["Memory"],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetMemoryResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update conversation memory",
+        "operationId": "updateMemory",
+        "tags": ["Memory"],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateMemoryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HandleNewContactRequest": {
+        "type": "object",
+        "required": ["contactId", "conversationId", "conversationalFlowVersionId", "channel"],
+        "properties": {
+          "contactId": { "type": "string" },
+          "conversationId": { "type": "string" },
+          "conversationalFlowVersionId": { "type": "string" },
+          "channel": {
+            "type": "string",
+            "enum": ["phone", "whatsapp", "sms", "mail", "chat"]
+          },
+          "tenantData": { "type": "object" }
+        }
+      },
+      "HandleNewContactResponse": {
+        "type": "object"
+      },
+      "ChangeTaskRequest": {
+        "type": "object",
+        "required": ["contactId", "conversationId", "taskName"],
+        "properties": {
+          "contactId": { "type": "string" },
+          "conversationId": { "type": "string" },
+          "taskName": { "type": "string" }
+        }
+      },
+      "ChangeTaskResponse": {
+        "type": "object"
+      },
+      "FlowListItem": {
+        "type": "object"
+      },
+      "CreateFlowRequest": {
+        "type": "object",
+        "required": ["name", "campaignId", "updatedBy"],
+        "properties": {
+          "name": { "type": "string" },
+          "campaignId": { "type": "string" },
+          "updatedBy": { "type": "string" }
+        }
+      },
+      "CreateFlowResponse": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" }
+        }
+      },
+      "GetMemoryResponse": {
+        "type": "object"
+      },
+      "UpdateMemoryRequest": {
+        "type": "object"
+      },
+      "UpdateMemoryResponse": {
+        "type": "object"
+      }
+    }
+  }
+}
