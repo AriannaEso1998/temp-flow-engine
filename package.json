@@ -9,7 +9,10 @@
     "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "start": "node dist/api/server.js",
-    "test": "echo \"Tests not yet configured\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist"
   },
   "keywords": ["xstate", "fsm", "conversational-ai", "flow-engine"],
@@ -24,6 +27,8 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
-    "typescript": "^5.9.3"
+    "@vitest/ui": "^2.1.8",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.8"
   }
 }

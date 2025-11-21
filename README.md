@@ -11,19 +11,19 @@ TypeScript-based conversational flow management system using XState for Finite S
 - ✅ OpenAPI 3.1.0 schema definition with conditional validation (if/then/else)
 - ✅ Type generation from OpenAPI schema using openapi-typescript
 - ✅ Complete type system with type guards and validators
-- ✅ FSMCompiler skeleton for XState machine compilation
+- ✅ FSMCompiler with full XState machine compilation (transitions, guards, actions)
 - ✅ ConversationalFlowRunner with public actor exposure
 - ✅ Arrest framework configured for OpenAPI 3.1.0 support
+- ✅ Comprehensive test suite for FSMCompiler (12 test cases, 100% passing)
 
 ### In Progress
-- 🔨 FSM compilation logic (transitions, guards, actions)
 - 🔨 API endpoint implementations
 
 ### Planned
 - 📋 Redis integration for memory management
 - 📋 MongoDB integration for flow storage
 - 📋 Complete API implementation
-- 📋 Testing suite
+- 📋 Additional test coverage for services and API endpoints
 
 ## Documentation
 
@@ -89,10 +89,6 @@ temp-flow-engine/
 │   │   │   └── openapi.json              # OpenAPI 3.1.0 specification
 │   │   └── index.ts                       # Main API setup
 │   │
-│   ├── workers/                  # Background workers
-│   │   ├── variable-extraction-worker.ts
-│   │   └── conversation-cleanup-worker.ts
-│   │
 │   ├── utils/                    # Utilities
 │   │   ├── redis-client.ts
 │   │   ├── mongodb-client.ts
@@ -100,10 +96,6 @@ temp-flow-engine/
 │   │   ├── validation.ts
 │   │   └── date-helpers.ts
 │   │
-│   ├── config/                   # Configuration
-│   │   ├── environment.ts
-│   │   ├── constants.ts
-│   │   └── index.ts
 │   │
 │   ├── schemas/                  # Generated types
 │   │   └── generated/
@@ -112,32 +104,21 @@ temp-flow-engine/
 │   └── index.ts                  # Entry point
 │
 ├── tests/                        # Test suite
-│   ├── unit/
-│   │   ├── fsm/
-│   │   ├── services/
-│   │   └── models/
-│   ├── integration/
+│   ├── fsm/
+│   │   └── compiler.test.ts             # FSMCompiler tests (12 test cases)
+│   ├── services/                        # Service tests (planned)
+│   ├── models/                          # Model tests (planned)
+│   ├── integration/                     # Integration tests (planned)
 │   │   └── api/
-│   └── fixtures/
-│       ├── conversational-flows/
-│       └── memory/
+│   ├── fixtures/                        # Test fixtures (planned)
+│   │   ├── conversational-flows/
+│   │   └── memory/
+│   └── vitest.config.ts                 # Vitest configuration
 │
 ├── docs/                         # Documentation
 │   ├── ARCHITECTURE.md
 │   ├── FLOW-ENGINE.md
 │   └── CLAUDE.md
-│
-├── system-prompts/               # Versioned system prompts
-│   ├── v1/
-│   │   ├── it-IT/
-│   │   ├── en-US/
-│   │   └── es-ES/
-│   └── default/
-│
-├── scripts/                      # Utility scripts
-│   ├── generate-types.ts
-│   ├── seed-db.ts
-│   └── migrate.ts
 │
 ├── package.json
 ├── tsconfig.json
@@ -180,11 +161,14 @@ npm run type-check
 # Generate types from OpenAPI schema
 npm run generate:types
 
+# Run tests
+npm test                    # Run all tests once
+npm run test:watch          # Run tests in watch mode
+npm run test:ui             # Run tests with UI
+npm run test:coverage       # Run tests with coverage report
+
 # Build (not yet implemented)
 npm run build
-
-# Run tests (not yet implemented)
-npm test
 
 # Start server (not yet implemented)
 npm start
@@ -244,6 +228,57 @@ runner.actor.subscribe(state => console.log(state));
 runner.changeTask('newTaskName');
 const agentData = runner.getAgentData();
 ```
+
+## Testing
+
+The project uses **Vitest** as the test framework, configured for ESM module support.
+
+### Test Suite
+
+#### FSMCompiler Tests ([tests/fsm/compiler.test.ts](tests/fsm/compiler.test.ts))
+
+Comprehensive test suite with **12 test cases** covering:
+
+1. **Constructor Validation**
+   - Rejects draft versions
+   - Accepts published versions
+
+2. **FSM Compilation**
+   - Validates firstTask existence
+   - Compiles single-task flows
+   - Compiles multi-task flows with transitions
+   - Generates correct state metadata (taskId, type, prompt, mcpToolSelection)
+   - Handles type-specific metadata (hideTranscriptionToHuman for AIO, routingParameters for HUM/AIS)
+
+3. **Guard Validation**
+   - Allows transitions when all required `transitionParameters` are present in `memoryParameters`
+   - Blocks transitions when required parameters are missing
+   - Allows transitions when optional parameters are missing
+
+4. **Context Updates**
+   - Updates `currentTask` on state transitions
+   - Preserves initial context during machine initialization
+
+5. **Error Handling**
+   - Throws errors for missing tasks referenced in `connectedTasks`
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode (re-runs on file changes)
+npm run test:watch
+
+# Interactive UI
+npm run test:ui
+
+# Generate coverage report
+npm run test:coverage
+```
+
+All tests currently passing: **12/12 ✅**
 
 ## OpenAPI 3.1.0 Support
 

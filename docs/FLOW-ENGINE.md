@@ -1852,7 +1852,7 @@ guards: {
 
 actions: {
   setCurrentTask: assign(({event}) => {
-    return { newTask: event.type };
+    return { currentTask: event.type };
   });
 }
 
@@ -1860,14 +1860,14 @@ states: {
   prestazione: {
     entry: 'setCurrentTask',
     on: {
-      "prenotazione": [{
+      "prenotazione": {
           target: 'prenotazione',
           guard: {type: "isValid", params: {requiredTaskParameters: ["idPrestazione"]}},
-      }],
-      "cancellazione": [{
+      },
+      "cancellazione": {
           target: 'cancellazione',
           guard: {type: "isValid", params: {requiredTaskParameters: ["idPrestazione"]}},
-      }],
+      },
     },
   },
   prenotazione: {
