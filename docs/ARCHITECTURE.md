@@ -195,21 +195,6 @@ temp-flow-engine/
 │   │   └── raw/
 │   │       └── flow.schema.json
 │   │
-│   ├── shared/                   # Utilities version-agnostic
-│   │   ├── config/                        # Configurazione
-│   │   │   ├── environment.ts
-│   │   │   ├── database.ts
-│   │   │   ├── redis.ts
-│   │   │   └── index.ts
-│   │   ├── utils/                         # Utilities
-│   │   │   ├── validation.ts
-│   │   │   ├── prompt-loader.ts
-│   │   │   └── index.ts
-│   │   └── workers/                       # Worker background
-│   │       ├── variable-extraction-worker.ts
-│   │       ├── contact-summary-worker.ts
-│   │       └── index.ts
-│   │
 │   └── index.ts                  # Entry point
 │
 ├── tests/                        # Suite test
@@ -222,25 +207,12 @@ temp-flow-engine/
 │   ├── fixtures/                        # Test fixtures (planned)
 │   │   ├── conversational-flows/
 │   │   └── memory/
-│   ├── README.md
 │   └── vitest.config.ts
 │
 ├── docs/                         # Documentazione
 │   ├── FLOW-ENGINE.md
 │   ├── ARCHITECTURE.md
 │   └── CLAUDE.md
-│
-├── system-prompts/               # Prompt di sistema versionati
-│   ├── v1/
-│   │   ├── it-IT/
-│   │   ├── en-US/
-│   │   └── es-ES/
-│   └── default/
-│
-├── scripts/                      # Script utility
-│   ├── generate-types.ts
-│   ├── seed-db.ts
-│   └── migrate.ts
 │
 ├── package.json
 ├── tsconfig.json
