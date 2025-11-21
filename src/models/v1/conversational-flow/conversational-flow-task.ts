@@ -15,7 +15,7 @@ import type {
   MCPToolSelection,
   Checkpoint,
   ClosureConfig,
-} from "./types.js";
+} from "../types.js";
 
 // Re-export all task-related types
 export type ConversationalFlowTask = GeneratedTask;

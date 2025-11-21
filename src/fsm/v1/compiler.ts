@@ -17,14 +17,13 @@ import type {
     ConversationalFlowVersion,
     MemoryParameters,
     TransitionParameter
-} from "../models/index.js";
+} from "../../models/v1/index.js";
 
 
 export interface FSMContext {
     conversationId: string;
     contactId: string;
     currentTask: string;
-    newTask: string;
     channel: string;
 }
 
@@ -77,7 +76,7 @@ export class FSMCompiler {
                     if (event.type === 'xstate.init') {
                         return {};
                     }
-                    return { newTask: event.type };
+                    return { currentTask: event.type };
                 })
             }
         }).createMachine({
@@ -88,7 +87,6 @@ export class FSMCompiler {
                 contactId: input?.contactId || "",
                 currentTask: input?.currentTask || firstTask,
                 channel: input?.channel || "",
-                newTask: firstTask
             }) satisfies FSMContext,
             states: this.generateStates()
         });
@@ -111,11 +109,11 @@ export class FSMCompiler {
                     description: task.description,
                     prompt: task.prompt,
                     transitionParameters: task.transitionParameters,
-                    aiHelpers: task.aiHelpers,
-                    mcpToolSelection: task.mcpToolSelection,
-                    closureConfig: task.closureConfig,
-                    enabledCheckpoints: task.enabledCheckpoints,
-                    channels: task.channels,
+                    aiHelpers: task.aiHelpers ?? [],
+                    mcpToolSelection: task.mcpToolSelection ?? [],
+                    closureConfig: task.closureConfig ?? [],
+                    enabledCheckpoints: task.enabledCheckpoints ?? [],
+                    channels: task.channels ?? [],
                     connectedTasks: task.connectedTasks,
                     ...(task.type === 'AIO' && 'hideTranscriptionToHuman' in task
                         ? { hideTranscriptionToHuman: (task as ConversationalFlowTaskAIO).hideTranscriptionToHuman }

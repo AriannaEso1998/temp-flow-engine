@@ -10,7 +10,7 @@
  *   - If new tag provided: create version with new tag
  */
 
-import type { ConversationalFlowVersion } from "../../../models/index.js";
+import type { ConversationalFlowVersion } from "../../../../models/v1/index.js";
 
 export interface CreateVersionRequest {
   flowId: string;

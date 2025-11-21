@@ -2,7 +2,7 @@
  * Memory API Handlers - Business logic for memory operations
  */
 
-import { MemoryManager } from "../../services/memory-manager.js";
+import { MemoryManager } from "../../../services/v1/memory-manager.js";
 
 /**
  * TODO: Implement handlers

@@ -26,8 +26,8 @@
  */
 
 import { createActor, type AnyActorRef } from "xstate";
-import type { ConversationalFlowVersion } from "../models/index.js";
-import { FSMCompiler } from "./fsm-compiler.js";
+import type { ConversationalFlowVersion } from "../../models/v1/index.js";
+import { FSMCompiler } from "./compiler.js";
 
 export interface FlowContext {
   currentTask: string;

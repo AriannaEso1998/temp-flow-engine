@@ -3,7 +3,7 @@
  * Re-exports for cleaner imports throughout the codebase
  */
 
-import type { components } from "../schemas/generated/index.js";
+import type { components } from "../../schemas/v1/generated/index.js";
 
 // Re-export all schema components for easier access
 export type Schemas = components["schemas"];

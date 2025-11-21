@@ -2,7 +2,7 @@
  * FSM API Handlers - Business logic for flow management
  */
 
-// import { FlowService } from "../../services/flow-service.js";
+// import { FlowService } from "../../../services/v1/flow-service.js";
 
 // const flowService = new FlowService();
 

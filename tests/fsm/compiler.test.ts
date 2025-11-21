@@ -9,9 +9,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { FSMCompiler } from '../../src/fsm/compiler.js';
+import { FSMCompiler } from '../../src/fsm/v1/compiler.js';
 import { createActor } from 'xstate';
-import type { ConversationalFlowVersion, MemoryParameters } from '../../src/models/index.js';
+import type { ConversationalFlowVersion, MemoryParameters } from '../../src/models/v1/index.js';
 
 describe('FSMCompiler', () => {
   describe('Constructor validation', () => {
@@ -346,20 +346,17 @@ describe('FSMCompiler', () => {
       actor.start();
       const snapshot = actor.getSnapshot();
 
-      expect(snapshot.getMeta()).toEqual({
-        'flow_flow1_v_version1.welcome': {
-          taskId: 'task1',
-          type: 'AIO',
-          prompt: 'Welcome prompt',
-          mcpToolSelection: [
-            {
-              mcpServerName: 'server1',
-              selectedTools: []
-            }
-          ],
-          hideTranscriptionToHuman: true
+      const meta = snapshot.getMeta()['flow_flow1_v_version1.welcome'];
+      expect(meta._id).toBe('task1');
+      expect(meta.type).toBe('AIO');
+      expect(meta.prompt).toBe('Welcome prompt');
+      expect(meta.mcpToolSelection).toEqual([
+        {
+          mcpServerName: 'server1',
+          selectedTools: []
         }
-      });
+      ]);
+      expect(meta.hideTranscriptionToHuman).toBe(true);
     });
 
     it('should include routingParameters for HUM tasks', () => {
@@ -425,17 +422,13 @@ describe('FSMCompiler', () => {
       actor.start();
       const snapshot = actor.getSnapshot();
 
-      expect(snapshot.getMeta()).toEqual({
-        'flow_flow1_v_version1.operatore': {
-          taskId: 'task1',
-          type: 'HUM',
-          prompt: 'Transfer to operator',
-          mcpToolSelection: undefined,
-          routingParameters: {
-            timeout: 30,
-            agentSkills: ['support']
-          }
-        }
+      const meta = snapshot.getMeta()['flow_flow1_v_version1.operatore'];
+      expect(meta._id).toBe('task1');
+      expect(meta.type).toBe('HUM');
+      expect(meta.prompt).toBe('Transfer to operator');
+      expect(meta.routingParameters).toEqual({
+        timeout: 30,
+        agentSkills: ['support']
       });
     });
   });

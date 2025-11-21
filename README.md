@@ -33,75 +33,94 @@ TypeScript-based conversational flow management system using XState for Finite S
 
 ## Project Structure
 
+> **Note**: The project uses **Nested Versioning** strategy where versioning is organized by domain (api, services, fsm, models) rather than at the top level. This allows for granular evolution where different modules can be updated independently in v2 while sharing unchanged code from v1.
+
 ```
 temp-flow-engine/
 ├── src/
-│   ├── models/                   # Data models and types
-│   │   ├── types.ts                       # Generated types from OpenAPI
-│   │   ├── flow/                          # Flow-related models
-│   │   │   ├── conversational-flow.ts
-│   │   │   ├── conversational-flow-version.ts
-│   │   │   ├── conversational-flow-task.ts
-│   │   │   ├── transition.ts
-│   │   │   ├── variable.ts
-│   │   │   └── index.ts
-│   │   ├── memory/                        # Memory-related models
-│   │   │   ├── memory-variable.ts
-│   │   │   ├── previous-contact.ts
-│   │   │   └── index.ts
-│   │   └── index.ts                       # Central export
+│   ├── api/                      # REST API endpoints (Arrest)
+│   │   ├── fsm/v1/                        # Flow management API (UI)
+│   │   │   ├── index.ts
+│   │   │   ├── routes.ts
+│   │   │   ├── handlers.ts
+│   │   │   └── validators.ts
+│   │   ├── agents/v1/                     # Agent-facing API
+│   │   │   ├── index.ts
+│   │   │   ├── routes.ts                 # /handle-new-contact, /change-task
+│   │   │   ├── handlers.ts
+│   │   │   └── validators.ts
+│   │   ├── memory/v1/                     # Memory API
+│   │   │   ├── index.ts
+│   │   │   ├── routes.ts                 # GET/PUT /memory/:conversation_id
+│   │   │   ├── handlers.ts
+│   │   │   └── validators.ts
+│   │   ├── flows/v1/                      # Flow CRUD API
+│   │   │   ├── index.ts
+│   │   │   ├── routes.ts
+│   │   │   └── handlers.ts
+│   │   ├── middleware/                    # Shared middleware (version-agnostic)
+│   │   │   ├── auth.ts
+│   │   │   ├── validation.ts
+│   │   │   ├── error-handler.ts
+│   │   │   └── logger.ts
+│   │   ├── index.ts
+│   │   └── server.ts
 │   │
-│   ├── fsm/                      # FSM logic (ex-core)
+│   ├── services/v1/              # Business logic services
+│   │   ├── memory-manager.ts              # Redis memory management
+│   │   ├── flow-service.ts                # Flow CRUD operations
+│   │   ├── prompt-renderer.ts             # Prompt rendering
+│   │   ├── variable-extractor.ts          # Auto variable extraction
+│   │   ├── checkpoint-evaluator.ts        # Checkpoint evaluation
+│   │   ├── mongodb/                       # MongoDB repositories
+│   │   │   ├── connection.ts
+│   │   │   ├── flow-repository.ts
+│   │   │   └── version-repository.ts
+│   │   ├── redis/                         # Redis services
+│   │   │   ├── connection.ts
+│   │   │   └── memory-manager.ts
+│   │   └── index.ts
+│   │
+│   ├── fsm/v1/                   # FSM logic
 │   │   ├── compiler.ts                    # Compiles ConversationalFlowVersion → XState
-│   │   │                                  # (includes guards and actions)
 │   │   ├── runner.ts                      # ConversationalFlowRunner - FSM runtime
 │   │   ├── types.ts                       # FSMContext, FSMEvent types
 │   │   └── index.ts
 │   │
-│   ├── services/                 # Business logic services
-│   │   ├── memory-manager.ts              # Redis memory management
-│   │   ├── flow-service.ts                # Flow CRUD operations
-│   │   ├── prompt-renderer.ts             # Prompt rendering (Tournament)
-│   │   ├── variable-extractor.ts          # Auto variable extraction
-│   │   └── checkpoint-evaluator.ts        # Checkpoint evaluation
+│   ├── models/v1/                # Data models and types
+│   │   ├── types.ts                       # Generated types from OpenAPI
+│   │   ├── conversational-flow/
+│   │   │   ├── conversational-flow-version.ts
+│   │   │   └── conversational-flow-task.ts
+│   │   ├── memory/
+│   │   │   └── memory-variable.ts
+│   │   ├── transition.ts
+│   │   ├── variable.ts
+│   │   └── index.ts
 │   │
-│   ├── api/                      # REST API endpoints (Arrest)
-│   │   ├── fsm/                           # Flow management API (UI)
-│   │   │   ├── index.ts                  # Router
-│   │   │   ├── routes.ts                 # Route definitions
-│   │   │   ├── handlers.ts               # Request handlers
-│   │   │   └── validators.ts             # Input validation
-│   │   ├── agents/                        # Agent-facing API
-│   │   │   ├── index.ts                  # Router
-│   │   │   ├── routes.ts                 # /handle-new-contact, /change-task
-│   │   │   ├── handlers.ts
-│   │   │   └── validators.ts
-│   │   ├── memory/                        # Memory API
-│   │   │   ├── index.ts                  # Router
-│   │   │   ├── routes.ts                 # GET/PUT /memory/:conversation_id
-│   │   │   ├── handlers.ts
-│   │   │   └── validators.ts
-│   │   ├── middleware/
-│   │   │   ├── auth.ts
+│   ├── schemas/v1/               # OpenAPI schemas and generated types
+│   │   ├── openapi.json                   # OpenAPI 3.1.0 specification
+│   │   ├── generated/
+│   │   │   └── index.ts                  # Auto-generated from openapi-typescript
+│   │   └── raw/
+│   │       └── flow.schema.json
+│   │
+│   ├── shared/                   # Version-agnostic utilities
+│   │   ├── config/
+│   │   │   ├── environment.ts
+│   │   │   ├── database.ts
+│   │   │   ├── redis.ts
+│   │   │   └── index.ts
+│   │   ├── utils/
 │   │   │   ├── validation.ts
-│   │   │   └── error-handler.ts
-│   │   ├── schemas/
-│   │   │   └── openapi.json              # OpenAPI 3.1.0 specification
-│   │   └── index.ts                       # Main API setup
+│   │   │   ├── prompt-loader.ts
+│   │   │   └── index.ts
+│   │   └── workers/
+│   │       ├── variable-extraction-worker.ts
+│   │       ├── contact-summary-worker.ts
+│   │       └── index.ts
 │   │
-│   ├── utils/                    # Utilities
-│   │   ├── redis-client.ts
-│   │   ├── mongodb-client.ts
-│   │   ├── logger.ts
-│   │   ├── validation.ts
-│   │   └── date-helpers.ts
-│   │
-│   │
-│   ├── schemas/                  # Generated types
-│   │   └── generated/
-│   │       └── index.ts          # Auto-generated from openapi-typescript
-│   │
-│   └── index.ts                  # Entry point
+│   └── index.ts                  # Main entry point
 │
 ├── tests/                        # Test suite
 │   ├── fsm/
@@ -113,12 +132,25 @@ temp-flow-engine/
 │   ├── fixtures/                        # Test fixtures (planned)
 │   │   ├── conversational-flows/
 │   │   └── memory/
-│   └── vitest.config.ts                 # Vitest configuration
+│   ├── README.md
+│   └── vitest.config.ts
 │
 ├── docs/                         # Documentation
 │   ├── ARCHITECTURE.md
 │   ├── FLOW-ENGINE.md
 │   └── CLAUDE.md
+│
+├── system-prompts/               # Versioned system prompts
+│   ├── v1/
+│   │   ├── it-IT/
+│   │   ├── en-US/
+│   │   └── es-ES/
+│   └── default/
+│
+├── scripts/
+│   ├── generate-types.ts
+│   ├── seed-db.ts
+│   └── migrate.ts
 │
 ├── package.json
 ├── tsconfig.json
@@ -178,10 +210,10 @@ npm start
 
 ### Type System
 
-All types are generated from the OpenAPI 3.1.0 schema defined in [src/api/schemas/openapi.json](src/api/schemas/openapi.json):
+All types are generated from the OpenAPI 3.1.0 schema defined in [src/schemas/v1/openapi.json](src/schemas/v1/openapi.json):
 
-1. **openapi-typescript** generates raw types in [src/schemas/generated/index.ts](src/schemas/generated/index.ts)
-2. **models/** wraps generated types with type guards, validators, and helper functions
+1. **openapi-typescript** generates raw types in [src/schemas/v1/generated/index.ts](src/schemas/v1/generated/index.ts)
+2. **models/v1/** wraps generated types with type guards, validators, and helper functions
 
 ### Task Types
 
@@ -297,7 +329,7 @@ This enables JSON Schema draft-07 features like `if/then/else` for conditional v
 
 ```bash
 # 1. Edit OpenAPI schema
-vim src/api/schemas/openapi.json
+vim src/schemas/v1/openapi.json
 
 # 2. Regenerate TypeScript types
 npm run generate:types
@@ -306,7 +338,37 @@ npm run generate:types
 npm run type-check
 ```
 
-Types in `src/models/` automatically use the regenerated schema types.
+Types in `src/models/v1/` automatically use the regenerated schema types.
+
+## Versioning Strategy
+
+The project uses **Nested Versioning** for future-proof evolution:
+
+### Structure
+- Version folders (`v1/`, `v2/`) are nested within domain directories (`api/`, `services/`, `fsm/`, `models/`)
+- Shared utilities and configuration live in `src/shared/` (version-agnostic)
+- Each version can re-export unchanged code from previous versions
+
+### Benefits
+1. **Granular Evolution**: Update only the modules that change (e.g., `fsm/v2/` while keeping `services/v1/`)
+2. **Zero Duplication**: Files that don't change can use simple re-exports: `export * from '../v1/file.js'`
+3. **Clear Diffs**: Easy to see what changed between versions by comparing version folders
+4. **Type Safety**: TypeScript ensures correct imports between versioned modules
+
+### Example v2 Migration
+When creating v2:
+```typescript
+// fsm/v2/compiler.ts - New implementation
+export class FSMCompiler {
+  // Breaking changes here
+}
+
+// services/v2/flow-service.ts - No changes
+export * from '../v1/flow-service.js';  // Re-export v1
+
+// api/fsm/v2/handlers.ts - Adapted for new compiler
+import { FSMCompiler } from '../../../fsm/v2/compiler.js';
+```
 
 ## API Endpoints (Planned)
 

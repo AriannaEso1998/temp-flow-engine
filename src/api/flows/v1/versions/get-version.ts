@@ -4,7 +4,7 @@
  * Returns the full JSON of a flow version as saved by the UI.
  */
 
-import type { ConversationalFlowVersion } from "../../../models/index.js";
+import type { ConversationalFlowVersion } from "../../../../models/v1/index.js";
 
 export interface GetVersionRequest {
   flowId: string;

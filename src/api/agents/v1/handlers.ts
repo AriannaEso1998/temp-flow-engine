@@ -2,9 +2,9 @@
  * Agents API Handlers - Business logic for agent interactions
  */
 
-// import { ConversationalFlowRunner } from "../../fsm/runner.js";
-// import { MemoryManager } from "../../services/memory-manager.js";
-// import { PromptRenderer } from "../../services/prompt-renderer.js";
+// import { ConversationalFlowRunner } from "../../../fsm/v1/runner.js";
+// import { MemoryManager } from "../../../services/v1/memory-manager.js";
+// import { PromptRenderer } from "../../../services/v1/prompt-renderer.js";
 
 /**
  * TODO: Implement handlers
